@@ -1,0 +1,96 @@
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
+from Crypto import Random
+
+import os
+import sys
+import time
+import base64
+import socket
+import threading
+
+os.system('clear')
+# main.py 0.0.0.0 9884
+
+class security_layer:
+    def __init__(self):
+        random_generator = Random.new().read
+        self.private_key = RSA.generate(1024, random_generator)
+        self.public_key = self.private_key.publickey().exportKey("PEM")
+        self.successful_connection = False
+        self.init_build = False
+
+        print '\033[0;34m[slay]\033[0;0m generating private key.'
+        print '\033[0;34m[slay]\033[0;0m generating public key.'
+
+class listen(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.host = sys.argv[1]
+        self.port = int(sys.argv[2])
+
+    def run(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.host, self.port))
+        self.socket.listen(1)
+
+        print '\033[0;33m[wire]\033[0;0m waiting for connection, {}:{}.'.format(self.host, self.port)
+        connection, address = self.socket.accept()
+
+        while True:
+            if s.init_build == True:
+                break
+
+        print '\033[0;34m[slay]\033[0;0m building secure connection.'
+        encryption_token = connection.recv(1024)
+        open('build.wire', 'w').write(encryption_token)
+
+        s.successful_connection = True
+        print '\033[0;33m[wire]\033[0;0m chat established.\n'
+
+        while True:
+            packet = connection.recv(1024)
+            if len(packet) > 0:
+                decrypted_packet = s.private_key.decrypt(packet)
+                decoded_packet = base64.b64decode(decrypted_packet)
+                print decoded_packet
+
+
+class upload(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+        self.upload_connection_info = raw_input('\033[0;33m[wire]\033[0;0m connect: ')
+        s.init_build = True
+        self.host = self.upload_connection_info.split(':')[0]
+        self.port = int(self.upload_connection_info.split(':')[1])
+
+    def run(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((self.host, self.port))
+        self.socket.sendall(s.public_key)
+
+        while True:
+            if s.successful_connection == True:
+                break
+
+        load_connection_token = open('build.wire', 'r').read()
+        connection_public_key = RSA.importKey(load_connection_token)
+
+        while True:
+            packet = raw_input('')
+            encoded_packet = base64.b64encode(packet)
+            encrypted_packet = connection_public_key.encrypt(encoded_packet, 32)[0]
+            self.socket.sendall(str(encrypted_packet))
+
+
+if __name__ == '__main__':
+    s = security_layer()
+
+    l = listen()
+    l.start()
+
+    time.sleep(.1)
+
+    u = upload()
+    u.start()
